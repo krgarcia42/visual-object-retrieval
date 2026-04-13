@@ -6,7 +6,7 @@ def create_event(topic, payload):
   return {
     "type": "publish",
     "topic": topic,
-    "event_id": (uuid.uuid4()),
+    "event_id": str(uuid.uuid4()), #generate unique ID
     "payload": payload,
     "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()) # ISO 8601 format
   }
