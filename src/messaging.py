@@ -1,6 +1,11 @@
 import redis
 import json
+import logging
 from src.schema import create_event
+
+#added logging for robustness
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class MessageBroker:
     def __init__(self, host='localhost', port=6379):
