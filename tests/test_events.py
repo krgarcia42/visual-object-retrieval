@@ -1,13 +1,30 @@
 import unittest
+from unittest.mock import MagicMock,patch
 from src.messaging import MessageBroker
 
 class TestSystem(unittest.TestCase):
-  def test_logic(self):
-    broker = MessageBroker()
-    result = broker.publish("test", {"data": "info"})
-    self.assertIsNotNone(result)
+  def setUp(self):
+    self.broker = MessageBroker()
+    #fix: mocking Redis client so tests pass in actions
+    self.broker.client = MagicMock()
 
-  def test_timestamp(self):
-    from src.schema import create_event
-    event = create_event("test", {})
+  def test_event_generation(self):
+    #verifies returned event contains all required keys
+    topic = "test.topic"
+    payload = {"key": "value"}
+
+    event = self.broker.publish(topic, payload)
+
+    #check for fields
+    self.assertIsNotNone(event)
     self.assertIn("timestamp", event)
+    self.assertIn("event_id", event)
+    self.assertEqual(event["type"], "publish")
+
+  def test_redis_publish_called(self):
+    #verifies broker actually calls the redis publish method
+    self.broker.publish("test", {"data": 123})
+    self.broker.client.publish.assert_called_once()
+
+if __name__ == "__main__":
+  unittest.main()
