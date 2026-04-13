@@ -1,7 +1,13 @@
 import unittest
-from src.messaging_service import send_message
+from src.messaging import MessageBroker
 
-class TestEvents(unittest.TestCase):
-  def test_send_message(self):
-    result = send_message("test.topic", "123", {"data": "test"})
-    self.assertIsNone(result)
+class TestSystem(unittest.TestCase):
+  def test_logic(self):
+    broker = MessageBroker()
+    result = broker.publish("test", {"data": "info"})
+    self.assertIsNotNone(result)
+
+  def test_timestamp(self):
+    from src.schema import create_event
+    event = create_event("test", {})
+    self.assertIn("timestamp", event)
