@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 def submit_image(image_path):
   #entry point for image submission
-  logger.info(f"New image submission received: {image_path})
+  logger.info(f"New image submission received: {image_path}")
 
   broker = MessageBroker()
   payload = {"image_path": image_path, "status": "pending"}
