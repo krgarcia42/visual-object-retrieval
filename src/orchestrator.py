@@ -16,7 +16,7 @@ class Orchestrator:
     topic = event.get("topic")
     payload = event.get("payload")
 
-    if topic = "image.submitted":
+    if topic == "image.submitted":
       logger.info("Orchestrator: Handling image submission...")
       # 1. store the image
       url = self.storage.upload(event['event_id'], payload['image_path'])
