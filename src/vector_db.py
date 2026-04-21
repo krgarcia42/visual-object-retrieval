@@ -11,7 +11,7 @@ class VectorDB:
     #stores vectors and metadata
     self.storage[vector_id] = {
       "embedding": embedding,
-      "metadata"; metadata,
+      "metadata": metadata,
     }
     logger.info(f"Vector {vector_id} upserted successfully.")
     return True
