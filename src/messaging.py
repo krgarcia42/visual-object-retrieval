@@ -1,3 +1,4 @@
+import os
 import redis
 import json
 import logging
@@ -8,20 +9,25 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class MessageBroker:
-    def __init__(self, host='localhost', port=6379):
-        self.client = redis.Redis(host=host, port=port, decode_responses=True)
-        # (decode_responses=True) makes it so we don't have to manually decode bytes
+    def __init__(self):
+        #FIX: Reads Redis credentials from environment variables.
+        host = os.getenv('REDIS_HOST', 'localhost')
+        port = int(os.getenv('REDIS_PORT', 6379))
+        password = os.getenv('REDIS_PASSWORD', None)
+
+        self.client = redis.Redis(
+            host=host, 
+            port=port, 
+            password=password, 
+            decode_responses=True
+        )
 
     def publish(self, topic, payload):
-        #fix: added error handling for Redis connection issues
         event = create_event(topic, payload)
-        
         try:
-            #sends to Redis in a real environment
             self.client.publish(topic, json.dumps(event))
             logger.info(f"Published event {event['event_id']} to {topic}")
             return event
         except redis.ConnectionError as e:
-            #log the error instead of crashing
-            logger.error(f"Could not connect to Redis: {e}")
+            logger.error(f"Redis Connection Failed: {e}")
             return None
