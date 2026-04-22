@@ -1,4 +1,5 @@
 import unittest
+import os
 from unittest.mock import MagicMock, patch
 from src.messaging import MessageBroker
 from src.vector_db import VectorDB
@@ -12,15 +13,19 @@ from src.labeler import ImageLabeler
 class TestSystem(unittest.TestCase):
     def setUp(self):
         self.broker = MessageBroker()
+        # We mock the client for unit tests to avoid hitting the cloud every time
         self.broker.client = MagicMock()
 
     def test_event_generation(self):
+        """Verifies event schema contains all required fields"""
         event = self.broker.publish("test.topic", {"key": "value"})
         self.assertIsNotNone(event)
         self.assertIn("timestamp", event)
+        self.assertIn("event_id", event)
         self.assertEqual(event["type"], "publish")
 
     def test_idempotency(self):
+        """Simulates idempotency check to prevent duplicate processing"""
         processed_events = set()
         test_id = "evt_123"
         processed_events.add(test_id)
@@ -29,40 +34,42 @@ class TestSystem(unittest.TestCase):
 
 class TestNewServices(unittest.TestCase):
     def test_file_uploader_validation(self):
+        """Checks file extension filtering"""
         uploader = FileUploader()
         mock_storage = MagicMock()
-        # Test invalid extension
-        result = uploader.validate_and_upload("test.txt", mock_storage)
-        self.assertIsNone(result)
-        # Test valid extension
+        # Should fail for .txt
+        self.assertIsNone(uploader.validate_and_upload("test.txt", mock_storage))
+        # Should pass for .jpg
         uploader.validate_and_upload("test.jpg", mock_storage)
         mock_storage.upload.assert_called_once()
 
     def test_labeler_formatting(self):
+        """Checks that labels are properly capitalized"""
         labeler = ImageLabeler()
-        results = ["cat", "dog"]
-        labels = labeler.generate_labels(results)
-        self.assertEqual(labels, ["Cat", "Dog"])
+        labels = labeler.generate_labels(["cat", "person"])
+        self.assertEqual(labels, ["Cat", "Person"])
 
     def test_vector_db_upsert(self):
+        """Tests database entry logic"""
         db = VectorDB()
         self.assertTrue(db.upsert("vec1", [0.1], {"tag": "test"}))
 
 class TestIntegration(unittest.TestCase):
-    @patch('src.messaging.redis.Redis')
-    def test_full_orchestration_flow(self, mock_redis):
-        """Tests the full pipeline including labeling and storage."""
-        # 1. Trigger submission
+    def test_full_orchestration_flow(self):
+        """
+        Tests the end-to-end flow.
+        This will use REDIS_HOST from environment/secrets.
+        """
+        # 1. Trigger submission through app.py
         event = submit_image("test_image.jpg")
-        
-        # 2. Run orchestrator
+        self.assertIsNotNone(event)
+
+        # 2. Run orchestrator to coordinate services
         orc = Orchestrator()
         success = orc.handle_event(event)
         
         self.assertTrue(success)
-        # Verify the database mock within Orchestrator actually got data
-        # (This confirms the labeler and inference worker were called)
-        self.assertIn("image.submitted", event["topic"])
+        self.assertEqual(event["topic"], "image.submitted")
 
 if __name__ == "__main__":
     unittest.main()
