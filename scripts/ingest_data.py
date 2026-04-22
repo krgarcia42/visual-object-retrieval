@@ -26,5 +26,5 @@ def run_ingestion():
 
   logger.info("Ingestion Complete. 10/10 photos processed.")
 
-if __name__ == "__main__"
+if __name__ == "__main__":
     run_ingestion()
