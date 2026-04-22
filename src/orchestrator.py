@@ -3,14 +3,6 @@ from src.inference_worker import InferenceWorker
 from src.vector_db import VectorDB
 from src.storage_service import StorageService
 from src.labeler import ImageLabeler
-from src.models import ImageRecord
-
-logger = logging.getLogger(__name__)
-import logging
-from src.inference_worker import InferenceWorker
-from src.vector_db import VectorDB
-from src.storage_service import StorageService
-from src.labeler import ImageLabeler
 
 logger = logging.getLogger(__name__)
 
