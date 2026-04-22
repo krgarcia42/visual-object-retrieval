@@ -21,6 +21,11 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run tests
+      # This env block connects your Secrets to your Code
+      env:
+        REDIS_HOST: ${{ secrets.REDIS_HOST }}
+        REDIS_PORT: ${{ secrets.REDIS_PORT }}
+        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
       run: |
         # We set PYTHONPATH to the current directory so Python can find the 'src' folder
         export PYTHONPATH=$PYTHONPATH:$(pwd)
