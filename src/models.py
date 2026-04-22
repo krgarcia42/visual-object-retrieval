@@ -3,10 +3,10 @@ class ImageRecord:
     #Ensures every image has a consistent structure
     def __init__(self, image_id, url, labels, embedding):
         self.data = {
-            "id": image_id,           # Unique ID from our schema
-            "storage_url": url,       # Where the file is kept
-            "tags": labels,           # Searchable words from the labeler
-            "embedding": embedding,    # The math vector for AI search
+            "id": image_id,           #unique ID from schema
+            "storage_url": url,       #where the file is kept
+            "tags": labels,           #searchable words from labeler
+            "embedding": embedding,    #math vector for AI search
             "metadata": {
                 "version": "1.0",
                 "processed": True
@@ -14,5 +14,5 @@ class ImageRecord:
         }
 
     def to_dict(self):
-        """Returns the record as a dictionary for easy saving."""
+        #Returns the record as a dictionary for easy saving
         return self.data
