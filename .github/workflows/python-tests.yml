@@ -3,7 +3,7 @@ name: Python Unit Tests
 on: [push, pull_request]
 
 jobs:
-  test:
+  test_and_ingest:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,13 +20,21 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run tests
-      # This env block connects your Secrets to your Code
+    - name: Run Unit and Integration Tests
       env:
         REDIS_HOST: ${{ secrets.REDIS_HOST }}
         REDIS_PORT: ${{ secrets.REDIS_PORT }}
         REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
       run: |
-        # We set PYTHONPATH to the current directory so Python can find the 'src' folder
         export PYTHONPATH=$PYTHONPATH:$(pwd)
         python -m unittest discover tests
+
+    - name: Run Data Ingestion (10 Hard-coded Images)
+      env:
+        REDIS_HOST: ${{ secrets.REDIS_HOST }}
+        REDIS_PORT: ${{ secrets.REDIS_PORT }}
+        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
+        #executes script to analyze the 10 images
+        python scripts/ingest_data.py
