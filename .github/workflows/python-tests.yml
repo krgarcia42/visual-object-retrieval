@@ -23,17 +23,24 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Run FAISS Unit Tests
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          python3 -m unittest tests/test_faiss.py
 
       - name: Start Orchestrator (Background)
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # The '&' at the end runs this in the background
           python3 -c "from src.orchestrator import Orchestrator; Orchestrator().start()" &
           echo "Orchestrator started in background..."
-          sleep 5 # Give it time to subscribe to Redis
+          sleep 5 
 
       - name: Run Ingestion (Publisher)
         env:
@@ -42,10 +49,10 @@ jobs:
         run: |
           python3 scripts/ingest_data.py
 
-      - name: Verify Results (Document Store Check)
+      - name: Verify Results (Document & Vector Check)
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # This ensures the pipeline actually finished and saved the "Mongo" docs
-          python3 -c "from src.document_store import DocumentStore; print(f'Docs found: {len(DocumentStore().client.keys(\"image_doc:*\"))}')"
+          python3 -c "from src.document_store import DocumentStore; print(f'Mongo-style Docs found: {len(DocumentStore().client.keys(\"image_doc:*\"))}')"
+          python3 -c "from src.vector_db import VectorDB; vdb = VectorDB(); print(f'FAISS Index Count: {vdb.index.ntotal}')"
