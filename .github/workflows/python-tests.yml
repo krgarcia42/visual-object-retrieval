@@ -31,7 +31,6 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # Runs test_faiss.py and test_system.py (validation, idempotency, etc.)
           python3 -m unittest discover tests
 
       - name: Start Orchestrator (Background)
@@ -39,7 +38,6 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # Starts the subscriber loop in the background
           python3 -c "from src.orchestrator import Orchestrator; Orchestrator().start()" &
           echo "Orchestrator online and listening..."
           sleep 5 
@@ -49,7 +47,6 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # Publishes the 10-image dataset to Redis channel
           python3 scripts/ingest_data.py
 
       - name: Verify Final Pipeline Results (With Polling)
@@ -58,19 +55,18 @@ jobs:
           REDIS_PORT: 6379
         run: |
           echo "Waiting for Orchestrator to process at least 10 images..."
-          for i in {1..6}; do
+          for i in {1..10}; do
             COUNT=$(python3 -c "from src.document_store import DocumentStore; print(len(DocumentStore().client.keys('image_doc:*')))")
-            echo "Current Document Count: $COUNT"
-            # CHANGED: Use -ge (Greater than or equal) instead of -eq (Equal)
-            if [ "$COUNT" -ge 10 ]; then
-              echo "Success: $COUNT images processed and stored in NoSQL DB!"
-              
-              echo "--- EMBEDDING DB CHECK ---"
-              python3 -c "from src.vector_db import VectorDB; vdb = VectorDB(); print(f'FAISS Vectors Indexed: {vdb.index.ntotal}')"
+            V_COUNT=$(python3 -c "from src.vector_db import VectorDB; print(VectorDB().index.ntotal)")
+            
+            echo "Current Progress -> Docs: $COUNT, Vectors: $V_COUNT"
+            
+            if [ "$COUNT" -ge 10 ] && [ "$V_COUNT" -ge 10 ]; then
+              echo "Success: $COUNT documents and $V_COUNT vectors verified!"
               exit 0
             fi
             sleep 5
           done
 
-          echo "Error: Expected at least 10 images, but only found $COUNT."
+          echo "Error: Pipeline failed to synchronize 10 records within the time limit."
           exit 1
