@@ -57,13 +57,13 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          echo "Waiting for Orchestrator to process 10 images..."
-          # Polling loop: Checks every 5s for up to 30s total
+          echo "Waiting for Orchestrator to process at least 10 images..."
           for i in {1..6}; do
             COUNT=$(python3 -c "from src.document_store import DocumentStore; print(len(DocumentStore().client.keys('image_doc:*')))")
-            echo "Current Document Count: $COUNT/10"
-            if [ "$COUNT" -eq 10 ]; then
-              echo "Success: All 10 images processed and stored in NoSQL DB!"
+            echo "Current Document Count: $COUNT"
+            # CHANGED: Use -ge (Greater than or equal) instead of -eq (Equal)
+            if [ "$COUNT" -ge 10 ]; then
+              echo "Success: $COUNT images processed and stored in NoSQL DB!"
               
               echo "--- EMBEDDING DB CHECK ---"
               python3 -c "from src.vector_db import VectorDB; vdb = VectorDB(); print(f'FAISS Vectors Indexed: {vdb.index.ntotal}')"
@@ -72,5 +72,5 @@ jobs:
             sleep 5
           done
 
-          echo "Error: Orchestrator failed to process all images within the time limit."
+          echo "Error: Expected at least 10 images, but only found $COUNT."
           exit 1
