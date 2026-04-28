@@ -1,3 +1,5 @@
 redis
 pytest
 mock
+google-generativeai
+python-dotenv
