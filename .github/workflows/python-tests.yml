@@ -31,7 +31,7 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # This runs test_faiss.py AND test_system.py (idempotency, validation, etc.)
+          # Runs test_faiss.py and test_system.py (validation, idempotency, etc.)
           python3 -m unittest discover tests
 
       - name: Start Orchestrator (Background)
@@ -49,24 +49,28 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          # Publishes the 10-image dataset to Redis
+          # Publishes the 10-image dataset to Redis channel
           python3 scripts/ingest_data.py
 
-      - name: Verify Final Pipeline Results
+      - name: Verify Final Pipeline Results (With Polling)
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
         run: |
-          echo "--- DOCUMENT DB CHECK ---"
-          python3 -c "from src.document_store import DocumentStore; print(f'Total NoSQL Documents Found: {len(DocumentStore().client.keys(\"image_doc:*\"))}')"
-          
-          echo "--- EMBEDDING DB CHECK ---"
-          python3 -c "from src.vector_db import VectorDB; vdb = VectorDB(); print(f'FAISS Vectors Indexed: {vdb.index.ntotal}')"
+          echo "Waiting for Orchestrator to process 10 images..."
+          # Polling loop: Checks every 5s for up to 30s total
+          for i in {1..6}; do
+            COUNT=$(python3 -c "from src.document_store import DocumentStore; print(len(DocumentStore().client.keys('image_doc:*')))")
+            echo "Current Document Count: $COUNT/10"
+            if [ "$COUNT" -eq 10 ]; then
+              echo "Success: All 10 images processed and stored in NoSQL DB!"
+              
+              echo "--- EMBEDDING DB CHECK ---"
+              python3 -c "from src.vector_db import VectorDB; vdb = VectorDB(); print(f'FAISS Vectors Indexed: {vdb.index.ntotal}')"
+              exit 0
+            fi
+            sleep 5
+          done
 
-      - name: Integration Test (End-to-End)
-        env:
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-        run: |
-          # Specific check to ensure Orchestrator processed the ingestion
-          python3 -c "from src.document_store import DocumentStore; count = len(DocumentStore().client.keys(\"image_doc:*\")); exit(0 if count == 10 else 1)"
+          echo "Error: Orchestrator failed to process all images within the time limit."
+          exit 1
