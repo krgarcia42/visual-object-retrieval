@@ -10,7 +10,7 @@ class TestSystem(unittest.TestCase):
         store = DocumentStore()
         test_filename = "test_image.jpg"
         
-        # Polling: The background worker might be processing the batch
+        #polling: The background worker might be processing the batch
         doc = None
         for i in range(15):  # 30 seconds total
             # 1. Try to find the specific test image
@@ -19,7 +19,7 @@ class TestSystem(unittest.TestCase):
                 doc = doc_raw
                 break
             
-            # 2. Backup check: Has ANY image doc landed? 
+            # 2. Backup check: Has any image doc landed? 
             # (Proves the Orchestrator is alive and working)
             all_keys = store.client.keys("image_doc:*")
             if all_keys:
@@ -31,7 +31,7 @@ class TestSystem(unittest.TestCase):
             time.sleep(2)
         
         self.assertIsNotNone(doc, "Timeout: No documents appeared in Redis.")
-        print("✅ Integration Verified: Data found in Document Store.")
+        print("Integration Verified: Data found in Document Store.")
 
 if __name__ == "__main__":
     unittest.main()
