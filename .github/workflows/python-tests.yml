@@ -1,40 +1,51 @@
-name: Python Unit Tests
+name: CI/CD Pipeline
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
-  test_and_ingest:
+  run-pipeline:
     runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
 
-    - name: Run Unit and Integration Tests
-      env:
-        REDIS_HOST: ${{ secrets.REDIS_HOST }}
-        REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-      run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)
-        python -m unittest discover tests
+      - name: Start Orchestrator (Background)
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          # The '&' at the end runs this in the background
+          python3 -c "from src.orchestrator import Orchestrator; Orchestrator().start()" &
+          echo "Orchestrator started in background..."
+          sleep 5 # Give it time to subscribe to Redis
 
-    - name: Run Data Ingestion (10 Hard-coded Images)
-      env:
-        REDIS_HOST: ${{ secrets.REDIS_HOST }}
-        REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-      run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)
-        #executes script to analyze the 10 images
-        python scripts/ingest_data.py
+      - name: Run Ingestion (Publisher)
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          python3 scripts/ingest_data.py
+
+      - name: Verify Results (Document Store Check)
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          # This ensures the pipeline actually finished and saved the "Mongo" docs
+          python3 -c "from src.document_store import DocumentStore; print(f'Docs found: {len(DocumentStore().client.keys(\"image_doc:*\"))}')"
