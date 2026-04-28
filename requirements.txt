@@ -3,3 +3,5 @@ pytest
 mock
 google-generativeai
 python-dotenv
+faiss-cpu
+numpy
