@@ -32,7 +32,8 @@ jobs:
           PYTHONPATH: .
         run: |
           python3 tests/test_faiss.py
-          python3 tests/test_system.py
+          # Corrected filename based on your screenshot:
+          python3 tests/test_events.py
 
       - name: Step 2 - Start Orchestrator & Run Integration
         env:
