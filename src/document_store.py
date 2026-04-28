@@ -4,16 +4,18 @@ import os
 
 class DocumentStore:
     def __init__(self):
-        #connect to existing Redis instance
         self.client = redis.Redis(
             host=os.getenv("REDIS_HOST", "localhost"),
             port=6379,
             decode_responses=True
         )
 
-    def save_image_document(self, image_id, document):
-        """Stores a nested dictionary as a JSON 'Document' in Redis."""
+    def save_document(self, image_id, data):
+        #stores a nested dictionary as a JSON 'Document'
         key = f"image_doc:{image_id}"
-        #simulates a Mongo document save
-        self.client.set(key, json.dumps(document))
+        self.client.set(key, json.dumps(data))
         return key
+
+    def get_document(self, image_id):
+        data = self.client.get(f"image_doc:{image_id}")
+        return json.loads(data) if data else None
