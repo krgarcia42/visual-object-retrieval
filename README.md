@@ -1,27 +1,28 @@
 # Visual Object Retrieval System
 
-An event-driven pipeline built to process, analyze, and store image data using **Python**, **Redis**, and **AI-driven embeddings**.
+An event-driven pipeline built to process, analyze, and store image data using **Python**, **Redis**, and **FAISS Vector Search**.
 
 ## System Architecture
 This project follows a microservices-style architecture where components communicate via an asynchronous message broker.
-* **App layer**: Handles image submissions.
-* **Orchestrator**: Coordinates data flow between services.
-* **Inference Worker**: Simulates AI object detection and generates 128-dim vectors.
-* **Labeler**: Cleans and standardizes object tags.
-* **Vector DB**: Stores embeddings and metadata in a searchable format.
+* **App layer**: Handles image metadata submissions via a Publisher.
+* **Orchestrator**: Acts as a Subscriber, coordinating data flow between services in the background.
+* **Inference Worker**: Simulates AI object detection and generates **128-dim vectors** (embeddings).
+* **Document Store**: Manages JSON-based NoSQL metadata persistence within Redis.
+* **Vector DB**: Utilizes **FAISS** to store embeddings with disk-based persistence for similarity searching.
 
 ## Tech Stack
-* **Language**: Python
-* **Messaging/Storage**: Redis Cloud
-* **Testing**: Unittest & GitHub Actions (CI/CD)
-* **Environment**: Environment variables for secure credential management.
+* **Language**: Python 3.10
+* **Messaging/Storage**: Redis (Pub/Sub & Document Store)
+* **Vector Engine**: FAISS (Facebook AI Similarity Search)
+* **Testing**: Unittest with Polling Resilience for asynchronous verification.
+* **CI/CD**: GitHub Actions with automated service containers and final data audits.
 
 ## Data Ingestion
 The system is pre-loaded with a hard-coded dataset of 10 images. Each image undergoes:
-1.  **Validation**: Format checking via `FileUploader`.
-2.  **Analysis**: Extraction of bounding boxes and labels (e.g., Tree, Car, Cat).
-3.  **Vectorization**: Generation of random 128-dimensional embeddings.
-4.  **Storage**: Final records are pushed to the Cloud Redis instance.
+1.  **Event Trigger**: Publication of image data to a Redis channel.
+2.  **Analysis**: Extraction of labels and high-fidelity inference simulation.
+3.  **Vectorization**: Generation of persistent 128-dimensional embeddings.
+4.  **Polyglot Storage**: JSON metadata is stored in Redis, while vectors are indexed in FAISS for Nearest Neighbor retrieval.
 
 ## Setup & Testing
 1.  **Install dependencies**:
@@ -30,11 +31,14 @@ The system is pre-loaded with a hard-coded dataset of 10 images. Each image unde
     ```
 2.  **Run Tests**:
     ```bash
-    python -m unittest discover tests
+    export PYTHONPATH=.
+    python3 -m unittest discover tests
     ```
 3.  **Run Ingestion**:
     ```bash
-    python scripts/ingest_data.py
+    # Start Orchestrator in background, then run ingestion
+    python3 -c "from src.orchestrator import Orchestrator; Orchestrator().start()" &
+    python3 scripts/ingest_data.py
     ```
 
 ## Video
